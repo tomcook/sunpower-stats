@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: sunpower-stats
+Resources:
+  sunpowerstats:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      SecretString: '{"DATADOG_API_KEY":"DUMMYSTRING","DATADOG_APP_KEY":"DUMMYSTRING","SUNPOWER_TOKEN":"DUMMYSTRING"}'
+      Tags: 
+        - Key: "app"
+          Value: "sunpower-stats"
+  fn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handle
+      Runtime: python2.7
+      Description: Collect stats from the SunPower API into DataDog
+      CodeUri: function/
+      MemorySize: 128
+      Timeout: 60
+      Environment:
+        Variables:
+          SUNPOWER_STATS_SECRETS_ARN: !Ref sunpowerstats
+      Events:
+        Timer:
+          Type: Schedule
+          Properties:
+            Schedule: !Sub "rate(5 minutes)"
+      Policies:
+        - Statement:
+          - Sid: SecretsAccess
+            Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource: !Ref sunpowerstats
